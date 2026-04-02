@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a2e1a">
+<meta name="description" content="EcoGuard - Real-time Oil Spill Detection & Alert System">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EcoGuard">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>EcoGuard — Oil Spill Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050f0a;
+    --bg2: #0a1f12;
+    --bg3: #0f2d1a;
+    --surface: #122518;
+    --surface2: #1a3522;
+    --border: rgba(34,200,100,0.15);
+    --border2: rgba(34,200,100,0.3);
+    --green: #22c864;
+    --green-dim: rgba(34,200,100,0.12);
+    --green-mid: rgba(34,200,100,0.4);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --red: #ff4444;
+    --red-dim: rgba(255,68,68,0.12);
+    --blue: #3b9eff;
+    --text: #e8f5ee;
+    --text2: #8ab59a;
+    --text3: #4a7a5a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-size: 16px; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(5,15,10,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--green-dim);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo span { color: var(--green); }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 20px;
+    background: var(--green-dim); border: 1px solid var(--border2);
+    font-size: 12px; font-weight: 500; color: var(--green);
+  }
+  .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  /* NAV */
+  .nav {
+    display: flex; gap: 4px;
+    padding: 0 20px; border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 12px 16px; font-size: 13px; font-weight: 500;
+    color: var(--text2); background: none; border: none;
+    border-bottom: 2px solid transparent; cursor: pointer;
+    white-space: nowrap; transition: all 0.2s; font-family: var(--sans);
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* PAGES */
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
+
+  /* GRID */
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* METRIC CARDS */
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .metric-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .metric-card.green .metric-value { color: var(--green); }
+  .metric-card.amber .metric-value { color: var(--amber); }
+  .metric-card.red .metric-value { color: var(--red); }
+  .metric-card.blue .metric-value { color: var(--blue); }
+
+  /* STATUS BADGE */
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge.safe { background: var(--green-dim); color: var(--green); border: 1px solid var(--border2); }
+  .badge.warning { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,166,35,0.3); }
+  .badge.danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,68,68,0.3); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.6; } }
+
+  /* SENSOR BAR */
+  .sensor-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .sensor-row:last-child { border-bottom: none; }
+  .sensor-name { flex: 1; font-size: 13px; }
+  .sensor-loc { font-size: 11px; color: var(--text3); }
+  .progress-wrap { width: 100px; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease, background 0.3s; }
+  .sensor-val { font-size: 13px; font-family: var(--mono); min-width: 50px; text-align: right; }
+
+  /* ALERT ITEMS */
+  .alert-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .alert-item.critical { border-color: rgba(255,68,68,0.4); background: rgba(255,68,68,0.05); }
+  .alert-item.warning { border-color: rgba(245,166,35,0.3); background: rgba(245,166,35,0.04); }
+  .alert-icon { font-size: 20px; flex-shrink: 0; }
+  .alert-title { font-size: 14px; font-weight: 600; }
+  .alert-detail { font-size: 12px; color: var(--text2); margin-top: 3px; }
+  .alert-time { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+  /* MAP */
+  .map-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 300px; position: relative; overflow: hidden;
+  }
+  .map-svg { width: 100%; height: 100%; }
+  .map-legend {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(5,15,10,0.85);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px; font-size: 11px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* CHART */
+  .chart-wrap { height: 140px; position: relative; display: flex; align-items: flex-end; gap: 4px; padding-top: 8px; }
+  .chart-bar { flex: 1; border-radius: 3px 3px 0 0; transition: height 0.5s ease; min-height: 2px; }
+  .chart-labels { display: flex; gap: 4px; margin-top: 4px; }
+  .chart-label { flex: 1; text-align: center; font-size: 10px; color: var(--text3); }
+
+  /* READINGS TABLE */
+  .readings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .readings-table th { text-align: left; font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .readings-table td { padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .readings-table td:first-child { color: var(--text); font-weight: 500; }
+  .readings-table tr:last-child td { border-bottom: none; }
+
+  /* CONTROLS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; font-family: var(--sans);
+    cursor: pointer; transition: all 0.2s; border: none;
+  }
+  .btn-primary { background: var(--green); color: #050f0a; }
+  .btn-primary:hover { background: #1daa54; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border2); }
+  .btn-outline:hover { background: var(--green-dim); }
+  .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+  .btn-danger:hover { background: rgba(255,68,68,0.2); }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
+  .form-input, .form-select {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-size: 14px; font-family: var(--sans);
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--green); }
+
+  /* NOTIFICATION TOAST */
+  #toast-container {
+    position: fixed; top: 70px; right: 16px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px;
+    max-width: 320px;
+  }
+  .toast {
+    padding: 12px 16px;
+    background: var(--surface2); border-radius: var(--radius-sm);
+    font-size: 13px; border-left: 3px solid var(--green);
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.critical { border-left-color: var(--red); }
+  .toast.warning { border-left-color: var(--amber); }
+  .toast-title { font-weight: 600; margin-bottom: 2px; }
+  .toast-body { color: var(--text2); font-size: 12px; }
+  @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* ALARM OVERLAY */
+  #alarm-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9998;
+    background: rgba(255,10,10,0.08);
+    pointer-events: none;
+    animation: flashRed 0.5s infinite alternate;
+  }
+  @keyframes flashRed { to { background: rgba(255,10,10,0.18); } }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title .accent { color: var(--green); }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* THRESHOLD SLIDER */
+  .threshold-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .threshold-name { width: 140px; font-size: 13px; }
+  .threshold-slider { flex: 1; accent-color: var(--green); }
+  .threshold-val { font-size: 13px; font-family: var(--mono); color: var(--green); min-width: 48px; text-align: right; }
+
+  /* REPORT CARD */
+  .report-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .report-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg3); color: var(--text2); }
+
+  /* RESPONSIVE */
+  @media(max-width:480px) {
+    .topbar { padding: 0 14px; }
+    .page { padding: 14px; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div id="alarm-overlay"></div>
+<div id="toast-container"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    Eco<span>Guard</span>
+  </div>
+  <div class="status-pill">
+    <div class="pulse-dot" id="system-dot"></div>
+    <span id="system-status-text">Monitoring</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="showPage('sensors',this)">Sensors</button>
+  <button class="nav-btn" onclick="showPage('alerts',this)">Alerts <span id="alert-badge" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;display:none">0</span></button>
+  <button class="nav-btn" onclick="showPage('map',this)">Map</button>
+  <button class="nav-btn" onclick="showPage('reports',this)">Reports</button>
+  <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
+</nav>
+
+<!-- ===== DASHBOARD PAGE ===== -->
+<div id="page-dashboard" class="page active">
+  <div class="grid-4" id="metric-grid">
+    <div class="metric-card green">
+      <div class="metric-label">Active Sensors</div>
+      <div class="metric-value" id="m-sensors">12</div>
+      <div class="metric-sub">All online</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="metric-label">Avg Oil Conc.</div>
+      <div class="metric-value" id="m-conc">--</div>
+      <div class="metric-sub">ppm across zones</div>
+    </div>
+    <div class="metric-card red">
+      <div class="metric-label">Active Alerts</div>
+      <div class="metric-value" id="m-alerts">0</div>
+      <div class="metric-sub" id="m-alert-sub">No incidents</div>
+    </div>
+    <div class="metric-card blue">
+      <div class="metric-label">Uptime</div>
+      <div class="metric-value" id="m-uptime">100%</div>
+      <div class="metric-sub">Last 24 hours</div>
+    </div>
+  </div>
+
+  <!-- Live Readings Chart -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <div class="card-title">Live Oil Concentration (ppm)</div>
+      <span id="chart-status" class="badge safe">Normal</span>
+    </div>
+    <div class="chart-wrap" id="live-chart"></div>
+    <div class="chart-labels" id="chart-labels"></div>
+  </div>
+
+  <!-- Top Sensors Quick View -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <div class="card-title">Critical Sensors</div>
+      <span class="badge safe" id="critical-badge">All Clear</span>
+    </div>
+    <div id="critical-sensors"></div>
+  </div>
+
+  <!-- System Status -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">System Status</div>
+    </div>
+    <div id="system-log" style="font-size:12px;font-family:var(--mono);color:var(--text2);line-height:1.8;max-height:120px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ===== SENSORS PAGE ===== -->
+<div id="page-sensors" class="page">
+  <div class="section-title"><span class="accent">⬡</span> Sensor Network</div>
+  <div id="sensor-list"></div>
+
+  <div class="divider"></div>
+  <div class="section-title" style="font-size:14px">Add Sensor</div>
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">Sensor Name</label>
+      <input class="form-input" id="new-sensor-name" placeholder="e.g. Pipeline Node 13">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location / Zone</label>
+      <input class="form-input" id="new-sensor-loc" placeholder="e.g. Zone D - River Bank">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sensor Type</label>
+      <select class="form-select" id="new-sensor-type">
+        <option>Optical (Fluorescence)</option>
+        <option>Conductivity</option>
+        <option>Chemical (PAH)</option>
+        <option>Ultrasonic Film Detection</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addSensor()">+ Deploy Sensor</button>
+  </div>
+</div>
+
+<!-- ===== ALERTS PAGE ===== -->
+<div id="page-alerts" class="page">
+  <div class="section-title"><span class="accent">⚠</span> Alert History</div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-outline" onclick="filterAlerts('all')">All</button>
+    <button class="btn btn-outline" onclick="filterAlerts('critical')">Critical</button>
+    <button class="btn btn-outline" onclick="filterAlerts('warning')">Warning</button>
+    <button class="btn btn-outline" onclick="clearAlerts()">Clear All</button>
+  </div>
+  <div id="alert-list"></div>
+</div>
+
+<!-- ===== MAP PAGE ===== -->
+<div id="page-map" class="page">
+  <div class="section-title"><span class="accent">◎</span> Detection Map</div>
+  <div class="map-container">
+    <svg id="map-svg" class="map-svg" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background terrain -->
+      <rect width="500" height="300" fill="#0a1f12"/>
+      <!-- Water body -->
+      <ellipse cx="250" cy="200" rx="160" ry="60" fill="#0c2d3a" stroke="#1a5070" stroke-width="1"/>
+      <!-- River channel -->
+      <path d="M30,160 Q120,140 180,200 Q240,260 320,220 Q400,180 470,200" stroke="#1a5070" stroke-width="12" fill="none" opacity="0.5"/>
+      <!-- Land patches -->
+      <rect x="0" y="0" width="500" height="130" fill="#0a1a10" opacity="0.6"/>
+      <!-- Pipeline -->
+      <path d="M20,120 Q100,100 200,110 Q300,120 400,100 L480,95" stroke="#2d5040" stroke-width="4" fill="none" stroke-dasharray="8,4"/>
+      <!-- Sensor nodes (dynamic, drawn by JS) -->
+      <g id="map-sensors"></g>
+      <!-- Spill zones (dynamic) -->
+      <g id="map-spills"></g>
+    </svg>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#22c864"></div><span style="font-size:11px;color:#8ab59a">Safe</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div><span style="font-size:11px;color:#8ab59a">Warning</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div><span style="font-size:11px;color:#8ab59a">Spill Detected</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a5070;border:1px solid #3b9eff"></div><span style="font-size:11px;color:#8ab59a">Water Body</span></div>
+    </div>
+  </div>
+  <div style="margin-top:16px">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px">Zone Status</div>
+      <div id="zone-table"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPORTS PAGE ===== -->
+<div id="page-reports" class="page">
+  <div class="section-title"><span class="accent">📋</span> Incident Reports</div>
+  <div id="report-list"></div>
+  <div class="divider"></div>
+  <div class="section-title" style="font-size:14px">Generate Report</div>
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">Date Range</label>
+      <select class="form-select" id="rpt-range">
+        <option>Last 24 Hours</option>
+        <option>Last 7 Days</option>
+        <option>Last 30 Days</option>
+        <option>All Time</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Severity Filter</label>
+      <select class="form-select" id="rpt-sev">
+        <option>All Incidents</option>
+        <option>Critical Only</option>
+        <option>Warnings Only</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+  </div>
+</div>
+
+<!-- ===== SETTINGS PAGE ===== -->
+<div id="page-settings" class="page">
+  <div class="section-title"><span class="accent">⚙</span> Settings</div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="margin-bottom:14px">Detection Thresholds</div>
+    <div class="threshold-row">
+      <span class="threshold-name">Warning (ppm)</span>
+      <input type="range" class="threshold-slider" id="thr-warn" min="20" max="200" value="80" oninput="document.getElementById('thr-warn-val').textContent=this.value">
+      <span class="threshold-val" id="thr-warn-val">80</span>
+    </div>
+    <div class="threshold-row">
+      <span class="threshold-name">Critical (ppm)</span>
+      <input type="range" class="threshold-slider" id="thr-crit" min="50" max="500" value="200" oninput="document.getElementById('thr-crit-val').textContent=this.value">
+      <span class="threshold-val" id="thr-crit-val">200</span>
+    </div>
+    <div class="threshold-row">
+      <span class="threshold-name">Scan Interval (s)</span>
+      <input type="range" class="threshold-slider" id="thr-interval" min="1" max="10" value="3" oninput="document.getElementById('thr-interval-val').textContent=this.value">
+      <span class="threshold-val" id="thr-interval-val">3</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="margin-bottom:14px">Notifications</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+        <input type="checkbox" id="notif-sound" checked style="accent-color:var(--green)"> Sound Alerts
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+        <input type="checkbox" id="notif-visual" checked style="accent-color:var(--green)"> Visual Flash
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+        <input type="checkbox" id="notif-push" checked style="accent-color:var(--green)"> Push Notifications
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px">
+        <input type="checkbox" id="notif-log" checked style="accent-color:var(--green)"> Log all readings
+      </label>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="margin-bottom:14px">Simulation</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-danger" onclick="triggerSpill()">🚨 Simulate Spill</button>
+      <button class="btn btn-outline" onclick="clearSpill()">✓ All Clear</button>
+      <button class="btn btn-outline" onclick="exportData()">⬇ Export Data</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px">About EcoGuard</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7">
+      EcoGuard v1.0 — Real-time Oil Spill Detection System<br>
+      Developed for Petroleum Engineering Students<br>
+      Supports optical, chemical & acoustic sensor arrays<br>
+      <span style="color:var(--text3);font-size:11px">Knock Aerospace & Petroleum University · 2025</span>
+    </p>
+  </div>
+</div>
+
+<script>
+// =====================
+// BACKEND DATA LAYER
+// =====================
+const DB = {
+  sensors: [
+    { id: 'S01', name: 'Alpha Node', location: 'Zone A — Pipeline Inlet', type: 'Optical', value: 12, lat: 80, lng: 60, active: true },
+    { id: 'S02', name: 'Beta Node', location: 'Zone B — River Bank', type: 'Chemical (PAH)', value: 45, lat: 160, lng: 80, active: true },
+    { id: 'S03', name: 'Gamma Node', location: 'Zone C — Storage Tank', type: 'Conductivity', value: 88, lat: 250, lng: 130, active: true },
+    { id: 'S04', name: 'Delta Node', location: 'Zone D — Wetland', type: 'Optical', value: 22, lat: 340, lng: 70, active: true },
+    { id: 'S05', name: 'Epsilon Node', location: 'Zone E — Creek', type: 'Ultrasonic', value: 30, lat: 420, lng: 110, active: true },
+    { id: 'S06', name: 'Zeta Node', location: 'Zone F — Offshore', type: 'Chemical (PAH)', value: 170, lat: 180, lng: 200, active: true },
+    { id: 'S07', name: 'Eta Node', location: 'Zone G — Canal', type: 'Conductivity', value: 55, lat: 290, lng: 210, active: true },
+    { id: 'S08', name: 'Theta Node', location: 'Zone H — Refinery', type: 'Optical', value: 18, lat: 390, lng: 200, active: true },
+    { id: 'S09', name: 'Iota Node', location: 'Zone I — Estuary', type: 'Ultrasonic', value: 60, lat: 100, lng: 170, active: true },
+    { id: 'S10', name: 'Kappa Node', location: 'Zone J — Pipeline Mid', type: 'Optical', value: 9, lat: 460, lng: 170, active: true },
+    { id: 'S11', name: 'Lambda Node', location: 'Zone K — Pumping Station', type: 'Chemical (PAH)', value: 40, lat: 220, lng: 260, active: true },
+    { id: 'S12', name: 'Mu Node', location: 'Zone L — Mangrove', type: 'Conductivity', value: 25, lat: 350, lng: 250, active: true }
+  ],
+  alerts: [],
+  readings: [],
+  nextSensorId: 13,
+  spillActive: false
+};
+
+// =====================
+// ENGINE
+// =====================
+let chartData = [];
+let thresholdWarn = 80;
+let thresholdCrit = 200;
+let scanInterval = 3000;
+let engineTimer = null;
+
+function getThresholds() {
+  thresholdWarn = parseInt(document.getElementById('thr-warn').value);
+  thresholdCrit = parseInt(document.getElementById('thr-crit').value);
+  scanInterval = parseInt(document.getElementById('thr-interval').value) * 1000;
+}
+
+function simSensorValue(sensor) {
+  if (DB.spillActive && ['S03','S06','S09'].includes(sensor.id)) {
+    return Math.min(600, sensor.value + Math.random() * 80 + 40);
+  }
+  const drift = (Math.random() - 0.48) * 12;
+  const v = Math.max(0, sensor.value + drift);
+  return parseFloat(v.toFixed(1));
+}
+
+function scanSensors() {
+  getThresholds();
+  DB.sensors.forEach(s => {
+    if (!s.active) return;
+    const newVal = simSensorValue(s);
+    const prev = s.value;
+    s.value = newVal;
+
+    // Detect threshold crossings
+    const wasCrit = prev >= thresholdCrit;
+    const isCrit = newVal >= thresholdCrit;
+    const wasWarn = prev >= thresholdWarn;
+    const isWarn = newVal >= thresholdWarn;
+
+    if (isCrit && !wasCrit) {
+      addAlert('critical', s.name, `Oil concentration CRITICAL: ${newVal.toFixed(0)} ppm at ${s.location}`, s.id);
+    } else if (isWarn && !wasWarn && !isCrit) {
+      addAlert('warning', s.name, `Elevated concentration: ${newVal.toFixed(0)} ppm at ${s.location}`, s.id);
+    }
+  });
+
+  // Add to readings history
+  const avgPpm = DB.sensors.reduce((a,s) => a + s.value, 0) / DB.sensors.length;
+  chartData.push(parseFloat(avgPpm.toFixed(1)));
+  if (chartData.length > 20) chartData.shift();
+
+  refreshUI();
+}
+
+function addAlert(type, title, detail, sensorId) {
+  const alert = {
+    id: Date.now(),
+    type,
+    title: type === 'critical' ? '🚨 SPILL DETECTED — ' + title : '⚠ High Concentration — ' + title,
+    detail,
+    sensorId,
+    time: new Date().toLocaleTimeString(),
+    timestamp: Date.now()
+  };
+  DB.alerts.unshift(alert);
+  if (DB.alerts.length > 100) DB.alerts.pop();
+
+  showToast(alert);
+
+  if (type === 'critical' && document.getElementById('notif-visual').checked) {
+    triggerVisualAlarm();
+  }
+
+  updateAlertBadge();
+}
+
+function triggerVisualAlarm() {
+  const overlay = document.getElementById('alarm-overlay');
+  overlay.style.display = 'block';
+  setTimeout(() => { overlay.style.display = 'none'; }, 4000);
+}
+
+function showToast(alert) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${alert.type}`;
+  el.innerHTML = `<div class="toast-title">${alert.title.substring(0,60)}</div><div class="toast-body">${alert.detail.substring(0,100)}</div>`;
+  container.appendChild(el);
+  setTimeout(() => { el.remove(); }, 5000);
+}
+
+function refreshUI() {
+  const critCount = DB.alerts.filter(a => a.type === 'critical' && (Date.now() - a.timestamp < 60000)).length;
+  const avgPpm = DB.sensors.reduce((a,s) => a + s.value, 0) / DB.sensors.length;
+  const activeSensors = DB.sensors.filter(s => s.active).length;
+
+  // Metrics
+  document.getElementById('m-sensors').textContent = activeSensors;
+  document.getElementById('m-conc').textContent = avgPpm.toFixed(0);
+  document.getElementById('m-alerts').textContent = critCount;
+  document.getElementById('m-alert-sub').textContent = critCount > 0 ? `${critCount} active incident(s)` : 'No incidents';
+
+  // Uptime
+  const uptime = ((activeSensors / DB.sensors.length) * 100).toFixed(0);
+  document.getElementById('m-uptime').textContent = uptime + '%';
+
+  // Chart
+  renderChart();
+
+  // Critical sensors
+  renderCriticalSensors();
+
+  // System log
+  addLog();
+
+  // Map
+  renderMap();
+
+  // Sensor list if visible
+  if (document.getElementById('page-sensors').classList.contains('active')) renderSensorList();
+  if (document.getElementById('page-alerts').classList.contains('active')) renderAlerts('all');
+  if (document.getElementById('page-map').classList.contains('active')) renderZoneTable();
+
+  updateAlertBadge();
+}
+
+// =====================
+// CHART
+// =====================
+function renderChart() {
+  const wrap = document.getElementById('live-chart');
+  const labelsEl = document.getElementById('chart-labels');
+  if (!chartData.length) return;
+  const max = Math.max(...chartData, thresholdCrit * 0.5) * 1.2;
+  wrap.innerHTML = chartData.map(v => {
+    const h = Math.max(4, (v / max) * 130);
+    let color = 'var(--green)';
+    if (v >= thresholdCrit) color = 'var(--red)';
+    else if (v >= thresholdWarn) color = 'var(--amber)';
+    return `<div class="chart-bar" style="height:${h}px;background:${color};opacity:0.85"></div>`;
+  }).join('');
+  labelsEl.innerHTML = chartData.map((_,i) => `<div class="chart-label">${i === chartData.length-1 ? 'Now' : ''}</div>`).join('');
+
+  const latest = chartData[chartData.length-1];
+  const statusEl = document.getElementById('chart-status');
+  if (latest >= thresholdCrit) {
+    statusEl.className = 'badge danger'; statusEl.textContent = 'CRITICAL';
+  } else if (latest >= thresholdWarn) {
+    statusEl.className = 'badge warning'; statusEl.textContent = 'Warning';
+  } else {
+    statusEl.className = 'badge safe'; statusEl.textContent = 'Normal';
+  }
+}
+
+// =====================
+// CRITICAL SENSORS
+// =====================
+function renderCriticalSensors() {
+  const sorted = [...DB.sensors].sort((a,b) => b.value - a.value).slice(0,4);
+  const el = document.getElementById('critical-sensors');
+  el.innerHTML = sorted.map(s => {
+    const pct = Math.min(100, (s.value / (thresholdCrit * 1.5)) * 100);
+    let color = '#22c864';
+    if (s.value >= thresholdCrit) color = '#ff4444';
+    else if (s.value >= thresholdWarn) color = '#f5a623';
+    return `<div class="sensor-row">
+      <div><div class="sensor-name">${s.name}</div><div class="sensor-loc">${s.location}</div></div>
+      <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="sensor-val" style="color:${color}">${s.value.toFixed(0)} ppm</div>
+    </div>`;
+  }).join('');
+
+  const hasHigh = sorted.some(s => s.value >= thresholdWarn);
+  const el2 = document.getElementById('critical-badge');
+  if (sorted[0].value >= thresholdCrit) { el2.className = 'badge danger'; el2.textContent = 'Spill Detected'; }
+  else if (hasHigh) { el2.className = 'badge warning'; el2.textContent = 'Elevated'; }
+  else { el2.className = 'badge safe'; el2.textContent = 'All Clear'; }
+}
+
+// =====================
+// SENSOR LIST
+// =====================
+function renderSensorList() {
+  const el = document.getElementById('sensor-list');
+  el.innerHTML = DB.sensors.map(s => {
+    const pct = Math.min(100, (s.value / (thresholdCrit * 1.5)) * 100);
+    let color = '#22c864'; let badge = 'safe'; let badgeTxt = 'Safe';
+    if (!s.active) { color = '#4a7a5a'; badge = ''; badgeTxt = 'Offline'; }
+    else if (s.value >= thresholdCrit) { color = '#ff4444'; badge = 'danger'; badgeTxt = 'CRITICAL'; }
+    else if (s.value >= thresholdWarn) { color = '#f5a623'; badge = 'warning'; badgeTxt = 'Warning'; }
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:600;font-size:14px">${s.id} — ${s.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${s.location} · ${s.type}</div>
+        </div>
+        <span class="badge ${badge}">${badgeTxt}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="progress-wrap" style="flex:1;height:8px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div style="font-size:15px;font-family:var(--mono);font-weight:600;color:${color}">${s.value.toFixed(1)} ppm</div>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:11px" onclick="toggleSensor('${s.id}')">${s.active ? 'Disable' : 'Enable'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSensor(id) {
+  const s = DB.sensors.find(x => x.id === id);
+  if (s) { s.active = !s.active; renderSensorList(); }
+}
+
+function addSensor() {
+  const name = document.getElementById('new-sensor-name').value.trim();
+  const loc = document.getElementById('new-sensor-loc').value.trim();
+  const type = document.getElementById('new-sensor-type').value;
+  if (!name || !loc) { alert('Please fill in sensor name and location'); return; }
+  const sid = 'S' + String(DB.nextSensorId++).padStart(2,'0');
+  DB.sensors.push({
+    id: sid, name, location: loc, type, value: Math.random()*30+5,
+    lat: Math.random()*400+40, lng: Math.random()*220+40, active: true
+  });
+  document.getElementById('new-sensor-name').value = '';
+  document.getElementById('new-sensor-loc').value = '';
+  renderSensorList();
+  addLog(`Sensor ${sid} "${name}" deployed at ${loc}`);
+  showToast({ type: 'safe', title: 'Sensor Deployed', detail: `${name} is now online` });
+}
+
+// =====================
+// ALERTS
+// =====================
+function renderAlerts(filter) {
+  let list = DB.alerts;
+  if (filter === 'critical') list = list.filter(a => a.type === 'critical');
+  if (filter === 'warning') list = list.filter(a => a.type === 'warning');
+
+  const el = document.getElementById('alert-list');
+  if (!list.length) {
+    el.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center;padding:24px">No alerts recorded</p>';
+    return;
+  }
+  el.innerHTML = list.map(a => `
+    <div class="alert-item ${a.type}">
+      <div class="alert-icon">${a.type === 'critical' ? '🚨' : '⚠️'}</div>
+      <div style="flex:1">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-detail">${a.detail}</div>
+        <div class="alert-time">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterAlerts(f) { renderAlerts(f); }
+function clearAlerts() { DB.alerts = []; renderAlerts('all'); updateAlertBadge(); }
+
+function updateAlertBadge() {
+  const critCount = DB.alerts.filter(a => a.type === 'critical').length;
+  const badge = document.getElementById('alert-badge');
+  if (critCount > 0) { badge.style.display = 'inline'; badge.textContent = critCount; }
+  else { badge.style.display = 'none'; }
+  document.getElementById('m-alerts').textContent = critCount;
+}
+
+// =====================
+// MAP
+// =====================
+function renderMap() {
+  const sensorsEl = document.getElementById('map-sensors');
+  const spillsEl = document.getElementById('map-spills');
+
+  sensorsEl.innerHTML = DB.sensors.filter(s=>s.active).map(s => {
+    let fill = '#22c864';
+    let r = 7;
+    if (s.value >= thresholdCrit) { fill = '#ff4444'; r = 10; }
+    else if (s.value >= thresholdWarn) { fill = '#f5a623'; r = 9; }
+    return `<circle cx="${s.lat}" cy="${s.lng}" r="${r}" fill="${fill}" opacity="0.9" stroke="#050f0a" stroke-width="1.5">
+      <title>${s.name}: ${s.value.toFixed(0)} ppm</title>
+    </circle>
+    <text x="${s.lat}" y="${s.lng - 14}" text-anchor="middle" font-size="8" fill="${fill}" font-family="monospace" opacity="0.8">${s.id}</text>`;
+  }).join('');
+
+  // Spill zones
+  spillsEl.innerHTML = DB.sensors.filter(s => s.value >= thresholdCrit).map(s =>
+    `<circle cx="${s.lat}" cy="${s.lng}" r="28" fill="rgba(255,68,68,0.12)" stroke="rgba(255,68,68,0.4)" stroke-width="1.5" stroke-dasharray="4,2"/>`
+  ).join('');
+}
+
+function renderZoneTable() {
+  const el = document.getElementById('zone-table');
+  el.innerHTML = `<table class="readings-table">
+    <thead><tr><th>Zone</th><th>Sensor</th><th>ppm</th><th>Status</th></tr></thead>
+    <tbody>` + DB.sensors.map(s => {
+    let badge = 'safe'; let txt = 'Safe';
+    if (s.value >= thresholdCrit) { badge = 'danger'; txt = 'CRITICAL'; }
+    else if (s.value >= thresholdWarn) { badge = 'warning'; txt = 'Warning'; }
+    return `<tr><td>${s.location.split('—')[0].trim()}</td><td>${s.name}</td><td style="font-family:var(--mono)">${s.value.toFixed(0)}</td><td><span class="badge ${badge}">${txt}</span></td></tr>`;
+  }).join('') + `</tbody></table>`;
+}
+
+// =====================
+// SYSTEM LOG
+// =====================
+const logs = [];
+function addLog(msg) {
+  if (!document.getElementById('notif-log').checked && !msg) return;
+  const t = new Date().toLocaleTimeString();
+  const m = msg || `Scan complete — avg ${(DB.sensors.reduce((a,s)=>a+s.value,0)/DB.sensors.length).toFixed(1)} ppm`;
+  logs.unshift(`[${t}] ${m}`);
+  if (logs.length > 30) logs.pop();
+  document.getElementById('system-log').textContent = logs.slice(0,12).join('\n');
+}
+
+// =====================
+// REPORTS
+// =====================
+function renderReports() {
+  const el = document.getElementById('report-list');
+  const incidents = DB.alerts.filter(a => a.type === 'critical');
+  if (!incidents.length) {
+    el.innerHTML = '<p style="color:var(--text3);font-size:13px;padding:16px 0">No incident reports yet. Simulate a spill to generate data.</p>';
+    return;
+  }
+  el.innerHTML = incidents.slice(0,5).map((a,i) => `
+    <div class="report-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:600;font-size:14px">Incident Report #${String(i+1).padStart(3,'0')}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${a.detail}</div>
+        </div>
+        <span class="badge danger">Critical</span>
+      </div>
+      <div class="report-meta">
+        <span class="tag">🕐 ${a.time}</span>
+        <span class="tag">📍 ${a.sensorId}</span>
+        <span class="tag">⚗ Oil Spill</span>
+      </div>
+    </div>`).join('');
+}
+
+function generateReport() {
+  const range = document.getElementById('rpt-range').value;
+  const sev = document.getElementById('rpt-sev').value;
+  const filtered = DB.alerts.filter(a => sev === 'All Incidents' || (sev === 'Critical Only' && a.type === 'critical') || (sev === 'Warnings Only' && a.type === 'warning'));
+  const csv = ['Time,Sensor,Type,Detail', ...filtered.map(a => `${a.time},${a.sensorId},${a.type},"${a.detail}"`)].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `ecoguard_report_${Date.now()}.csv`;
+  link.click();
+  showToast({ type: 'safe', title: 'Report Generated', detail: `${filtered.length} records exported as CSV` });
+}
+
+// =====================
+// SIMULATION CONTROLS
+// =====================
+function triggerSpill() {
+  DB.spillActive = true;
+  DB.sensors.find(s=>s.id==='S03').value = 250;
+  DB.sensors.find(s=>s.id==='S06').value = 320;
+  DB.sensors.find(s=>s.id==='S09').value = 180;
+  addLog('⚠ SIMULATION: Spill event triggered on Zones C, F, I');
+  showToast({ type: 'critical', title: '🚨 SIMULATION ACTIVE', detail: 'Oil spill simulation started on 3 sensor zones' });
+  triggerVisualAlarm();
+}
+
+function clearSpill() {
+  DB.spillActive = false;
+  DB.sensors.forEach(s => { if (s.value > 100) s.value = Math.random()*30+10; });
+  addLog('✓ All-clear issued. Spill simulation ended.');
+  showToast({ type: 'safe', title: 'All Clear', detail: 'Spill simulation has been cleared' });
+}
+
+function exportData() {
+  const data = {
+    exportTime: new Date().toISOString(),
+    sensors: DB.sensors.map(s => ({ ...s })),
+    alerts: DB.alerts,
+    averagePpm: (DB.sensors.reduce((a,s)=>a+s.value,0)/DB.sensors.length).toFixed(2)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `ecoguard_data_${Date.now()}.json`;
+  link.click();
+  showToast({ type: 'safe', title: 'Data Exported', detail: 'Sensor readings exported to JSON' });
+}
+
+// =====================
+// NAVIGATION
+// =====================
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+
+  if (name === 'sensors') renderSensorList();
+  if (name === 'alerts') renderAlerts('all');
+  if (name === 'map') { renderMap(); renderZoneTable(); }
+  if (name === 'reports') renderReports();
+}
+
+// =====================
+// PUSH NOTIFICATIONS
+// =====================
+async function requestNotifications() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') addLog('Push notifications enabled');
+  }
+}
+
+function sendPushNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted' && document.getElementById('notif-push').checked) {
+    new Notification('EcoGuard: ' + title, { body, icon: 'icon.svg' });
+  }
+}
+
+// =====================
+// INIT
+// =====================
+function init() {
+  requestNotifications();
+  addLog('EcoGuard system initialized');
+  addLog('12 sensors online and scanning');
+
+  // Initial chart data
+  for (let i = 0; i < 15; i++) {
+    chartData.push(parseFloat((Math.random() * 50 + 10).toFixed(1)));
+  }
+
+  scanSensors();
+  engineTimer = setInterval(() => {
+    scanSensors();
+    renderMap();
+  }, scanInterval);
+
+  // Re-init timer when interval changes
+  document.getElementById('thr-interval').addEventListener('input', () => {
+    clearInterval(engineTimer);
+    engineTimer = setInterval(scanSensors, parseInt(document.getElementById('thr-interval').value) * 1000);
+  });
+}
+
+init();
+
+// Register Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => { addLog('Service worker registered — offline mode active'); })
+      .catch(err => { console.warn('SW registration failed:', err); });
+  });
+}
+</script>
+</body>
+</html>
